@@ -52,9 +52,16 @@ void loop() {
 
   // Print student ID
   Serial.println("Authenticating block 24 (sector 6) with key A");
-  uint8_t keya[6] = {0x51, 0xA0, 0x12, 0x10, 0xC7, 0x0A};
   uint8_t blockData[16];
-  success = readBlock(24, 0, keya, uid, blockData);
+  byte keyA[6];
+  uidToKey6A(uid, keyA);
+  Serial.print("  Key: ");
+  for (byte i = 0; i < 6; i++) {
+    if (keyA[i] <= 0xf) Serial.print('0');
+    Serial.print(keyA[i] & 0xff, HEX);
+  }
+  Serial.println();
+  success = readBlock(24, 0, keyA, uid, blockData);
   
   if (!success) {
     Serial.println("Reading student ID block failed.");
@@ -124,6 +131,21 @@ bool readBlock(
 }
 
 /*!
+ * Calculates the keyA to sector 6 based on the UID.
+ * 
+ * @param uid  Pointer to a byte array containing the card's UID
+ * @param key  Pointer to a byte array to contain sector 6's Key A
+ */
+void uidToKey6A(byte *uid, byte *key) {
+  key[0] = 0x51;
+  key[1] = uid[2] ^ 0x50;
+  key[2] = uid[0] ^ 0x50;
+  key[3] = 0x10;
+  key[4] = uid[1] ^ 0x4c;
+  key[5] = 0x0a;
+}
+
+/*!
  * Writes an array of integers to the console.
  * 
  * @param block      The block to print
@@ -136,7 +158,7 @@ void printBlock(const uint8_t *block, uint8_t startByte, uint8_t endByte) {
 
 void printUID(const byte *uid) {
   for (uint8_t i = 0; i < 4; i++) {
-    if (uid[i] <= 0xf) Serial.print("0");
+    if (uid[i] <= 0xf) Serial.print('0');
     Serial.print(uid[i] & 0xff, HEX);
   }
   Serial.println();
